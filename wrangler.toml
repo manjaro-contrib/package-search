@@ -1,0 +1,7 @@
+name = "manjaro-package-search"
+main = "src/index.ts"
+compatibility_date = "2023-02-07"
+account_id = "cd1e88db5a44de0f45317275cbcef879"
+routes = [
+	{ pattern = "search.manjaro-sway.download", custom_domain = true }
+]
