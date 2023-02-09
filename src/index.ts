@@ -31,8 +31,7 @@ export default {
 
 			const branch = requestUrl.searchParams.get('branch') ?? 'stable';
 			const arch = requestUrl.searchParams.get('arch') ?? 'x86_64';
-
-			query = `path:/\/${branch}\/*\/${arch}\/${name}.*\.json$`
+			query = `${name}_${arch}_${branch}`
 		}
 
 		const response = await fetch(searchUrl(query), init)
