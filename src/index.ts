@@ -1,9 +1,7 @@
 const searchUrl = (query: string) => `https://api.github.com/search/code?per_page=30&page=1&q=${query}+in:file+extension:json+repo:manjaro-contrib/trace-mirror-dbs`
 
-interface Env { }
-
 const init = {
-	cf: { cacheTtl: 84600 },
+	cf: { cacheTtl: 1000 * 60 },
 	headers: {
 		'Accept': 'application/vnd.github+json',
 		'User-Agent': 'test'
@@ -19,8 +17,6 @@ const responseInit = {
 export default {
 	async fetch(
 		request: Request,
-		env: Env,
-		ctx: ExecutionContext
 	): Promise<Response> {
 		const requestUrl = new URL(request.url);
 
@@ -35,12 +31,17 @@ export default {
 		}
 
 		const response = await fetch(searchUrl(query), init)
-		const searchResult = await response.json<{ total_count: number; items: { git_url: string; }[] }>();
+		const searchResult = await response.json<{ total_count: number; items: { git_url: string; html_url: string; sha: string; }[] }>();
+		console.log(JSON.stringify(searchResult.items))
 		const results = await Promise.all(searchResult.items.map(async item => {
 			const itemResult = await fetch(item.git_url, init);
 			const raw = await itemResult.json<{ content: string }>();
 			const json = JSON.parse(atob(raw.content));
-			return json;
+			const meta = {
+				html_url: item.html_url,
+				sha: item.sha
+			}
+			return { ...json, meta };
 		}))
 
 		return new Response(JSON.stringify(results), responseInit);
