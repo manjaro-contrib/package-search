@@ -1,9 +1,7 @@
 const searchUrl = (query: string) =>
   `https://api.github.com/search/code?per_page=30&page=1&q=${query}+in:file+extension:json+repo:manjaro-contrib/trace-mirror-dbs`;
 
-export interface Env {
-  GITHUB_TOKEN: string;
-}
+export interface Env {}
 
 const responseInit = {
   headers: {
@@ -13,14 +11,7 @@ const responseInit = {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const init = {
-      cf: { cacheTtl: 1000 * 60 },
-      headers: {
-        Accept: "application/vnd.github+json",
-        "User-Agent": "test",
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      },
-    };
+    const init = {};
     const requestUrl = new URL(request.url);
 
     const name = requestUrl.searchParams.get("name");
@@ -38,6 +29,7 @@ export default {
       const url = `https://raw.githubusercontent.com/manjaro-contrib/trace-mirror-dbs/main/repo/${branch}/${repo}/${arch}/${name}.json`;
       const response = await fetch(url, { method: "HEAD" });
       if (response.ok) {
+        console.debug(`Found ${url}`);
         workingUrl = url;
         break;
       }
@@ -45,13 +37,7 @@ export default {
 
     const response = await fetch(workingUrl!, init);
 
-    const result = await response.json<{
-      git_url: string;
-      html_url: string;
-      sha: string;
-    }>();
-    console.log(result.git_url);
-
-    return new Response(JSON.stringify(result), responseInit);
+    const result = await response.text();
+    return new Response(result, responseInit);
   },
 };
