@@ -29,7 +29,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { search, arch, branch } = input.data;
 
   const result = await context.env.PACKAGES.prepare(
-    "SELECT * FROM packages WHERE arch = ? AND branch = ? AND (name LIKE ? OR name LIKE ?) ORDER BY (0 - (name LIKE ?) + (name LIKE ?)) || name  LIMIT 100;"
+    "SELECT *, strftime('%Y-%m-%dT%H:%M:%fZ', builddate, 'unixepoch') AS builddate FROM packages WHERE arch = ? AND branch = ? AND (name LIKE ? OR name LIKE ?) ORDER BY (0 - (name LIKE ?) + (name LIKE ?)) || name  LIMIT 100;"
   )
     .bind(
       arch,
