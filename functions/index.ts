@@ -34,8 +34,10 @@ export const branchValidator = z.enum(branches);
 export const repoValidator = z.enum(repos);
 
 const inputValidator = z.object({
-  search: z.string().min(3),
+  q: z.string().min(3),
   arch: archValidator.default("x86_64"),
+  page: z.number().int().min(1).optional().default(1),
+  size: z.number().int().min(1).max(50).optional().default(10),
 });
 
 export const onRequest: PagesFunction<Env> = async (context) => {
@@ -52,18 +54,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const params = new URL(context.request.url).searchParams;
 
   const input = inputValidator.safeParse({
-    search: params.get("search") ?? undefined,
+    q: params.get("q") ?? undefined,
     arch: params.get("arch") ?? undefined,
+    page: params.get("page") ? Number(params.get("page")) : undefined,
+    size: params.get("size") ? Number(params.get("size")) : undefined,
   });
 
   if (!input.success) {
     return Response.json(input.error, { status: 400 });
   }
-  const { search } = input.data;
+  const { q, page, size } = input.data;
 
-  const name = search;
-  const nameStart = `${search}%`;
-  const nameContains = `%${search}%`;
+  const name = q;
+  const nameStart = `${q}%`;
+  const nameContains = `%${q}%`;
 
   let query = db.selectFrom("packages").select(["name"]);
 
@@ -80,7 +84,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       );
     }
   }
-  query = query.limit(100);
+  query = query.limit(size);
+  query = query.offset((page - 1) * size);
   query = query.where((eb) =>
     eb.or([
       eb("name", "=", name),
@@ -95,7 +100,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const result = await query.execute();
 
-  return Response.json(result, {
+  return Response.json({result, hasNext: result.length === size }, {
     headers: {
       "content-type": "application/json",
       "Cache-Control": `public, max-age=${60 * 5}, s-maxage=${60 * 5}, stale-while-revalidate=${60 * 10}`,
