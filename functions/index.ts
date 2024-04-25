@@ -67,6 +67,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           .select([
             "stable.version as stable_version",
             "stable.name as stable_name",
+            "stable.builddate as stable_builddate"
           ])
           .where("branch", "=", "stable")
           .where("arch", "=", arch)
@@ -80,6 +81,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           .select([
             "unstable.version as unstable_version",
             "unstable.name as unstable_name",
+            "unstable.builddate as unstable_builddate"
           ])
           .where("branch", "=", "unstable")
           .where("arch", "=", arch)
@@ -93,6 +95,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           .select([
             "testing.version as testing_version",
             "testing.name as testing_name",
+            "testing.builddate as testing_builddate"
           ])
           .where("branch", "=", "testing")
           .where("arch", "=", arch)
@@ -102,15 +105,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       "name",
       "unstable.unstable_version",
       "stable.stable_version",
-      "testing.testing_version"
+      "testing.testing_version",
+      "unstable.unstable_builddate as builddate"
     ]);
-  // query = query.select(({ fn, ref, val }) =>
-  //   fn<string>("strftime", [
-  //     sql`'%Y-%m-%dT%H:%M:%fZ'`,
-  //     "builddate",
-  //     sql`'unixepoch'`,
-  //   ]).as("builddate")
-  // );
+  query = query.select(({ fn }) =>
+    fn<string>("strftime", [
+      sql`'%Y-%m-%dT%H:%M:%fZ'`,
+      "builddate",
+      sql`'unixepoch'`,
+    ]).as("builddate")
+  );
   query = query.limit(100);
   query = query.where((eb) =>
     eb.or([
