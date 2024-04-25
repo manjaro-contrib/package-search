@@ -1,25 +1,31 @@
+import z from "zod";
+
 type Env = {
   PACKAGES: D1Database;
 };
 
-const config = {
-  repos: {
-    core: ["x86_64", "aarch64"] as const,
-    extra: ["x86_64", "aarch64"] as const,
-    multilib: ["x86_64"] as const,
-  },
-  branches: ["unstable", "testing", "stable"] as const,
-};
+const archValidator = z.enum(["x86_64", "aarch64"]);
+const branchValidator = z.enum(["stable", "testing", "unstable"]);
+const repoValidator = z.enum(["core", "extra", "multilib"]);
+const inputValidator = z.object({
+  arch: archValidator,
+  branch: branchValidator,
+  repo: repoValidator,
+});
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const params = new URL(context.request.url).searchParams;
-  const arch = params.get("arch");
-  const branch = params.get("branch");
-  const repo = params.get("repo");
 
-  if (!arch || !branch || !repo) {
-    return Response.json("Missing parameters", { status: 400 });
+  const input = inputValidator.safeParse({
+    arch: params.get("arch"),
+    branch: params.get("branch"),
+    repo: params.get("repo"),
+  });
+
+  if (!input.success) {
+    return Response.json(input.error, { status: 400 });
   }
+  const { arch, branch, repo } = input.data;
 
   const url = `https://raw.githubusercontent.com/manjaro-contrib/trace-mirror-dbs/main/db/${branch}_${repo}_${arch}.json`;
   const result = await fetch(url, {
