@@ -42,12 +42,30 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
     );
   }
+  type SingleOrMulti = string | string[] | undefined;
   const content = await result.json<
     {
+      filename: string;
       name: string;
+      base: string | undefined;
       version: string;
-      desc: string;
+      desc: string | undefined;
+      csize: number;
+      isize: number;
+      md5sum: string | undefined;
+      sha256sum: string | undefined;
+      pgpsig: string | undefined;
+      url: string | undefined;
+      arch: string | undefined;
       builddate: string;
+      packager: string | undefined;
+      license: SingleOrMulti;
+      provides: SingleOrMulti;
+      conflicts: SingleOrMulti;
+      replaces: SingleOrMulti;
+      optdepends: SingleOrMulti;
+      depends: SingleOrMulti;
+      makedepends: SingleOrMulti;
     }[]
   >();
 
@@ -77,9 +95,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         arch,
         branch,
         repo,
-        pkg.version ?? "",
+        pkg.version,
         pkg.desc ?? "",
-        pkg.builddate ?? ""
+        pkg.builddate
       )
     ),
   ]);
