@@ -30,6 +30,7 @@ type Table = {
   sha256sum: string;
   pgpsig: string | null;
   url: string | null;
+  arch: SingleOrMulti;
   packager: string | null;
   license: SingleOrMulti;
   provides: SingleOrMulti;
@@ -87,6 +88,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           eb
             .selectFrom(`packages as p`)
             .select([
+              "p.filename",
+              "p.base",
               "p.version",
               "p.desc",
               ({ fn }) =>
@@ -95,6 +98,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                   "p.builddate",
                   sql`'unixepoch'`,
                 ]).as("builddate"),
+              "p.csize",
+              "p.sha256sum",
+              "p.url",
+              "p.arch",
+              "p.packager",
+              "p.license",
+              "p.provides",
+              "p.conflicts",
+              "p.replaces",
+              "p.optdepends",
+              "p.depends",
             ])
             .whereRef("p.name", "=", "packages.name")
             .where("p.branch", "=", branch)

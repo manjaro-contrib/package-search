@@ -46,7 +46,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // drop all packages for this db
   await context.env.PACKAGES.prepare(
-    "DELETE FROM packages WHERE arch = ? AND branch = ? AND repo = ?;"
+    "DELETE FROM packages WHERE db_arch = ? AND branch = ? AND repo = ?;"
   )
     .bind(arch, branch, repo)
     .run();
