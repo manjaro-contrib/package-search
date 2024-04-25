@@ -4,8 +4,9 @@ CREATE TABLE packages (
     arch TEXT NOT NULL,
     branch TEXT NOT NULL,
     repo TEXT NOT NULL,
-    version TEXT NOT NULL,
-    description TEXT NOT NULL,
-    builddate INTEGER NOT NULL,
+    raw_data TEXT,
+    version AS (json_extract(raw_data, '$.version')) STORED,
+    desc AS (json_extract(raw_data, '$.desc')) STORED,
+    builddate AS (json_extract(raw_data, '$.builddate')) STORED,
     PRIMARY KEY (`name`, `arch`, `branch`, `repo`)
 );

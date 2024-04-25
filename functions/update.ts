@@ -42,32 +42,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
     );
   }
-  type SingleOrMulti = string | string[] | undefined;
-  const content = await result.json<
-    {
-      filename: string;
-      name: string;
-      base: string | undefined;
-      version: string;
-      desc: string | undefined;
-      csize: number;
-      isize: number;
-      md5sum: string | undefined;
-      sha256sum: string | undefined;
-      pgpsig: string | undefined;
-      url: string | undefined;
-      arch: string | undefined;
-      builddate: string;
-      packager: string | undefined;
-      license: SingleOrMulti;
-      provides: SingleOrMulti;
-      conflicts: SingleOrMulti;
-      replaces: SingleOrMulti;
-      optdepends: SingleOrMulti;
-      depends: SingleOrMulti;
-      makedepends: SingleOrMulti;
-    }[]
-  >();
+  const content = await result.json<{ name: string }[]>();
 
   // drop all packages for this db
   await context.env.PACKAGES.prepare(
@@ -89,15 +64,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // add all packages
     ...content.map((pkg) =>
       context.env.PACKAGES.prepare(
-        "INSERT INTO packages (name, arch, branch, repo, version, description, builddate) VALUES (?, ?, ?, ?, ?, ?, ?);"
+        "INSERT INTO packages (name, arch, branch, repo, raw_data) VALUES (?, ?, ?, ?, ?);"
       ).bind(
         pkg.name,
         arch,
         branch,
         repo,
-        pkg.version,
-        pkg.desc ?? "",
-        pkg.builddate
+        JSON.stringify(pkg)
       )
     ),
   ]);

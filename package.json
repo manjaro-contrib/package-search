@@ -8,7 +8,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "echo nothing to build"
+    "build": "echo nothing to build",
+    "db:purge": "npx wrangler d1 execute packages --file=./schema.sql"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20221111.1",

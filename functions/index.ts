@@ -11,13 +11,39 @@ const archs = ["x86_64", "aarch64"] as const;
 const branches = ["stable", "testing", "unstable"] as const;
 const repos = ["core", "extra", "multilib"] as const;
 
-interface Table {
+
+// type SingleOrMulti = string | string[] | undefined;
+
+// export type Desc = {
+//   filename: string;
+//   name: string;
+//   base: string | undefined;
+//   version: string;
+//   csize: number;
+//   isize: number;
+//   md5sum: string;
+//   sha256sum: string;
+//   pgpsig: string | undefined;
+//   url: string | undefined;
+//   arch: string | undefined;
+//   packager: string | undefined;
+//   license: SingleOrMulti;
+//   provides: SingleOrMulti;
+//   conflicts: SingleOrMulti;
+//   replaces: SingleOrMulti;
+//   optdepends: SingleOrMulti;
+//   depends: SingleOrMulti;
+//   makedepends: SingleOrMulti;
+// };
+
+type Table = {
+  name: string;
   arch: (typeof archs)[number];
   branch: (typeof branches)[number];
   repo: (typeof repos)[number];
-  name: string;
+  raw_data: string;
   version: string;
-  description: string;
+  desc: string | null;
   builddate: string;
 }
 
@@ -31,9 +57,9 @@ export const getDB = (env: Env) => {
   });
 };
 
-export const archValidator = z.enum(["x86_64", "aarch64"]);
-export const branchValidator = z.enum(["stable", "testing", "unstable"]);
-export const repoValidator = z.enum(["core", "extra", "multilib"]);
+export const archValidator = z.enum(archs);
+export const branchValidator = z.enum(branches);
+export const repoValidator = z.enum(repos);
 
 const inputValidator = z.object({
   search: z.string().min(3),
@@ -69,7 +95,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             .selectFrom(`packages as p`)
             .select([
               "p.version",
-              "p.description",
+              "p.desc",
               ({ fn }) =>
                 fn<string>("strftime", [
                   sql`'%Y-%m-%dT%H:%M:%fZ'`,
@@ -84,63 +110,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       );
     }
   }
-  // .innerJoin(
-  //   (eb) =>
-  //     eb
-  //       .selectFrom("packages as stable")
-  //       .select([
-  //         "stable.version as stable_version",
-  //         "stable.name as stable_name",
-  //         "stable.builddate as stable_builddate"
-  //       ])
-  //       .where("branch", "=", "stable")
-  //       .where("arch", "=", arch)
-  //       .as("stable"),
-  //   (join) => join.onRef("stable.stable_name", "=", "name")
-  // )
-  // .innerJoin(
-  //   (eb) =>
-  //     eb
-  //       .selectFrom("packages as unstable")
-  //       .select([
-  //         "unstable.version as unstable_version",
-  //         "unstable.name as unstable_name",
-  //         "unstable.builddate as unstable_builddate"
-  //       ])
-  //       .where("branch", "=", "unstable")
-  //       .where("arch", "=", arch)
-  //       .as("unstable"),
-  //   (join) => join.onRef("unstable.unstable_name", "=", "name")
-  // )
-  // .innerJoin(
-  //   (eb) =>
-  //     eb
-  //       .selectFrom("packages as testing")
-  //       .select([
-  //         "testing.version as testing_version",
-  //         "testing.name as testing_name",
-  //         "testing.builddate as testing_builddate"
-  //       ])
-  //       .where("branch", "=", "testing")
-  //       .where("arch", "=", arch)
-  //       .as("testing"),
-  //   (join) => join.onRef("testing.testing_name", "=", "name")
-  // ).select([
-  //   "name",
-  //   "stable.stable_version",
-  //   "stable.stable_builddate",
-  //   "testing.testing_version",
-  //   "testing.testing_builddate",
-  //   "unstable.unstable_version",
-  //   "unstable.unstable_builddate",
-  // ]);
-  // query = query.select(({ fn }) =>
-  // fn<string>("strftime", [
-  //   sql`'%Y-%m-%dT%H:%M:%fZ'`,
-  //   "builddate",
-  //   sql`'unixepoch'`,
-  // ]).as("builddate")
-  // );
   query = query.limit(100);
   query = query.where((eb) =>
     eb.or([
