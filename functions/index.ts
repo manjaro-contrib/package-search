@@ -1,5 +1,6 @@
 import { Kysely, sql } from "kysely";
 import { D1Dialect } from "kysely-d1";
+import { jsonObjectFrom } from "kysely/helpers/sqlite";
 import z from "zod";
 
 export type Env = {
@@ -52,7 +53,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (!input.success) {
     return Response.json(input.error, { status: 400 });
   }
-  const { search, arch } = input.data;
+  const { search } = input.data;
 
   const name = search;
   const nameStart = `${search}%`;
@@ -60,61 +61,75 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   let query = db
     .selectFrom("packages")
-    .innerJoin(
-      (eb) =>
-        eb
-          .selectFrom("packages as stable")
-          .select([
-            "stable.version as stable_version",
-            "stable.name as stable_name",
-            "stable.builddate as stable_builddate"
-          ])
-          .where("branch", "=", "stable")
-          .where("arch", "=", arch)
-          .as("stable"),
-      (join) => join.onRef("stable.stable_name", "=", "name")
-    )
-    .innerJoin(
-      (eb) =>
-        eb
-          .selectFrom("packages as unstable")
-          .select([
-            "unstable.version as unstable_version",
-            "unstable.name as unstable_name",
-            "unstable.builddate as unstable_builddate"
-          ])
-          .where("branch", "=", "unstable")
-          .where("arch", "=", arch)
-          .as("unstable"),
-      (join) => join.onRef("unstable.unstable_name", "=", "name")
-    )
-    .innerJoin(
-      (eb) =>
-        eb
-          .selectFrom("packages as testing")
-          .select([
-            "testing.version as testing_version",
-            "testing.name as testing_name",
-            "testing.builddate as testing_builddate"
-          ])
-          .where("branch", "=", "testing")
-          .where("arch", "=", arch)
-          .as("testing"),
-      (join) => join.onRef("testing.testing_name", "=", "name")
-    ).select([
+    .select([
       "name",
-      "unstable.unstable_version",
-      "stable.stable_version",
-      "testing.testing_version",
-      "unstable.unstable_builddate as builddate"
+      (eb) =>
+        jsonObjectFrom(
+          eb
+            .selectFrom("packages as stable")
+            .select(["version"])
+            .whereRef("stable.name", "=", "packages.name")
+            .where("stable.branch", "=", "stable")
+            .where("stable.arch", "=", "x86_64")
+        ).as("stable_x86_64"),
     ]);
-  query = query.select(({ fn }) =>
-    fn<string>("strftime", [
-      sql`'%Y-%m-%dT%H:%M:%fZ'`,
-      "builddate",
-      sql`'unixepoch'`,
-    ]).as("builddate")
-  );
+  // .innerJoin(
+  //   (eb) =>
+  //     eb
+  //       .selectFrom("packages as stable")
+  //       .select([
+  //         "stable.version as stable_version",
+  //         "stable.name as stable_name",
+  //         "stable.builddate as stable_builddate"
+  //       ])
+  //       .where("branch", "=", "stable")
+  //       .where("arch", "=", arch)
+  //       .as("stable"),
+  //   (join) => join.onRef("stable.stable_name", "=", "name")
+  // )
+  // .innerJoin(
+  //   (eb) =>
+  //     eb
+  //       .selectFrom("packages as unstable")
+  //       .select([
+  //         "unstable.version as unstable_version",
+  //         "unstable.name as unstable_name",
+  //         "unstable.builddate as unstable_builddate"
+  //       ])
+  //       .where("branch", "=", "unstable")
+  //       .where("arch", "=", arch)
+  //       .as("unstable"),
+  //   (join) => join.onRef("unstable.unstable_name", "=", "name")
+  // )
+  // .innerJoin(
+  //   (eb) =>
+  //     eb
+  //       .selectFrom("packages as testing")
+  //       .select([
+  //         "testing.version as testing_version",
+  //         "testing.name as testing_name",
+  //         "testing.builddate as testing_builddate"
+  //       ])
+  //       .where("branch", "=", "testing")
+  //       .where("arch", "=", arch)
+  //       .as("testing"),
+  //   (join) => join.onRef("testing.testing_name", "=", "name")
+  // ).select([
+  //   "name",
+  //   "stable.stable_version",
+  //   "stable.stable_builddate",
+  //   "testing.testing_version",
+  //   "testing.testing_builddate",
+  //   "unstable.unstable_version",
+  //   "unstable.unstable_builddate",
+  // ]);
+  // query = query.select(({ fn }) =>
+  //   fn<string>("strftime", [
+  //     sql`'%Y-%m-%dT%H:%M:%fZ'`,
+  //     "builddate",
+  //     sql`'unixepoch'`,
+  //   ]).as("builddate")
+  // );
   query = query.limit(100);
   query = query.where((eb) =>
     eb.or([
