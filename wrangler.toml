@@ -1,3 +1,6 @@
+name = "package-search"
+pages_build_output_dir = "."
+
 [[ d1_databases ]]
 binding = "PACKAGES"
 database_name = "packages"

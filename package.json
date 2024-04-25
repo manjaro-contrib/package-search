@@ -9,12 +9,12 @@
   "license": "MIT",
   "scripts": {
     "build": "echo nothing to build",
-    "db:purge": "npx wrangler d1 execute packages --file=./schema.sql"
+    "db:purge": "npx wrangler d1 execute packages --local --file=./schema.sql",
+    "dev": "npx wrangler pages dev --d1 packages"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20221111.1",
-    "typescript": "^5.0.0",
-    "wrangler": "^3.0.0"
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "kysely": "^0.27.3",

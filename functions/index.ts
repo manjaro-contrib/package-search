@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { Kysely, ParseJSONResultsPlugin, sql } from "kysely";
 import { D1Dialect } from "kysely-d1";
 import { jsonObjectFrom } from "kysely/helpers/sqlite";
 import z from "zod";
@@ -48,6 +48,7 @@ interface Database {
 export const getDB = (env: Env) => {
   return new Kysely<Database>({
     dialect: new D1Dialect({ database: env.PACKAGES }),
+    plugins: [new ParseJSONResultsPlugin()]
   });
 };
 
