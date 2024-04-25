@@ -64,7 +64,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // add all packages
     ...content.map((pkg) =>
       context.env.PACKAGES.prepare(
-        "INSERT INTO packages (name, arch, branch, repo, raw_data) VALUES (?, ?, ?, ?, ?);"
+        "INSERT INTO packages (name, db_arch, branch, repo, raw_data) VALUES (?, ?, ?, ?, ?);"
       ).bind(
         pkg.name,
         arch,

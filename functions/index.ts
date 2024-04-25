@@ -11,40 +11,33 @@ const archs = ["x86_64", "aarch64"] as const;
 const branches = ["stable", "testing", "unstable"] as const;
 const repos = ["core", "extra", "multilib"] as const;
 
-
-// type SingleOrMulti = string | string[] | undefined;
-
-// export type Desc = {
-//   filename: string;
-//   name: string;
-//   base: string | undefined;
-//   version: string;
-//   csize: number;
-//   isize: number;
-//   md5sum: string;
-//   sha256sum: string;
-//   pgpsig: string | undefined;
-//   url: string | undefined;
-//   arch: string | undefined;
-//   packager: string | undefined;
-//   license: SingleOrMulti;
-//   provides: SingleOrMulti;
-//   conflicts: SingleOrMulti;
-//   replaces: SingleOrMulti;
-//   optdepends: SingleOrMulti;
-//   depends: SingleOrMulti;
-//   makedepends: SingleOrMulti;
-// };
+type SingleOrMulti = string | string[] | null;
 
 type Table = {
   name: string;
-  arch: (typeof archs)[number];
+  db_arch: (typeof archs)[number];
   branch: (typeof branches)[number];
   repo: (typeof repos)[number];
   raw_data: string;
   version: string;
   desc: string | null;
   builddate: string;
+  filename: string;
+  base: string | null;
+  csize: number;
+  isize: number;
+  md5sum: string;
+  sha256sum: string;
+  pgpsig: string | null;
+  url: string | null;
+  packager: string | null;
+  license: SingleOrMulti;
+  provides: SingleOrMulti;
+  conflicts: SingleOrMulti;
+  replaces: SingleOrMulti;
+  optdepends: SingleOrMulti;
+  depends: SingleOrMulti;
+  makedepends: SingleOrMulti;
 }
 
 interface Database {
@@ -105,7 +98,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             ])
             .whereRef("p.name", "=", "packages.name")
             .where("p.branch", "=", branch)
-            .where("p.arch", "=", arch)
+            .where("p.db_arch", "=", arch)
         ).as(`${branch}_${arch}`)
       );
     }
