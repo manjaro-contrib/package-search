@@ -39,6 +39,14 @@ const inputValidator = z.object({
 });
 
 export const onRequest: PagesFunction<Env> = async (context) => {
+  const cache = caches.default;
+  const response = await cache.match(context.request);
+
+  if (response) {
+    console.info("cache hit");
+    return response;
+  }
+
   const db = getDB(context.env);
 
   const params = new URL(context.request.url).searchParams;
@@ -87,5 +95,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const result = await query.execute();
 
-  return Response.json(result);
+  return Response.json(result, {
+    headers: {
+      "content-type": "application/json",
+      "Cache-Control": `public, max-age=${60 * 5}, s-maxage=${60 * 5}, stale-while-revalidate=${60 * 10}`,
+    },
+  });
 };
