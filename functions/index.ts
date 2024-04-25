@@ -59,20 +59,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const nameStart = `${search}%`;
   const nameContains = `%${search}%`;
 
-  let query = db
-    .selectFrom("packages")
-    .select([
-      "name",
-      (eb) =>
+  let query = db.selectFrom("packages").select(["name"]);
+
+  for (const arch of archs) {
+    for (const branch of branches) {
+      query = query.select((eb) =>
         jsonObjectFrom(
           eb
-            .selectFrom("packages as stable")
+            .selectFrom(`packages as p`)
             .select(["version"])
-            .whereRef("stable.name", "=", "packages.name")
-            .where("stable.branch", "=", "stable")
-            .where("stable.arch", "=", "x86_64")
-        ).as("stable_x86_64"),
-    ]);
+            .whereRef("p.name", "=", "packages.name")
+            .where("p.branch", "=", branch)
+            .where("p.arch", "=", arch)
+        ).as(`${branch}_${arch}`)
+      );
+    }
+  }
   // .innerJoin(
   //   (eb) =>
   //     eb
