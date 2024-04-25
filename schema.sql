@@ -1,29 +1,9 @@
 DROP TABLE IF EXISTS packages;
 CREATE TABLE packages (
     name TEXT NOT NULL,
-    db_arch TEXT NOT NULL,
+    arch TEXT NOT NULL,
     branch TEXT NOT NULL,
     repo TEXT NOT NULL,
     raw_data TEXT,
-    filename AS (json_extract(raw_data, '$.filename')) STORED,
-    base AS (json_extract(raw_data, '$.base')) STORED,
-    version AS (json_extract(raw_data, '$.version')) STORED,
-    desc AS (json_extract(raw_data, '$.desc')) STORED,
-    builddate AS (json_extract(raw_data, '$.builddate')) STORED,
-    csize AS (json_extract(raw_data, '$.csize')) STORED,
-    isize AS (json_extract(raw_data, '$.isize')) STORED,
-    md5sum AS (json_extract(raw_data, '$.md5sum')) STORED,
-    sha256sum AS (json_extract(raw_data, '$.sha256sum')) STORED,
-    pgpsig AS (json_extract(raw_data, '$.pgpsig')) STORED,
-    url AS (json_extract(raw_data, '$.url')) STORED,
-    arch AS (json_extract(raw_data, '$.arch')) STORED,
-    packager AS (json_extract(raw_data, '$.packager')) STORED,
-    license AS (json_extract(raw_data, '$.license')) STORED,
-    provides AS (json_extract(raw_data, '$.provides')) STORED,
-    conflicts AS (json_extract(raw_data, '$.conflicts')) STORED,
-    replaces AS (json_extract(raw_data, '$.replaces')) STORED,
-    optdepends AS (json_extract(raw_data, '$.optdepends')) STORED,
-    depends AS (json_extract(raw_data, '$.depends')) STORED,
-    makedepends AS (json_extract(raw_data, '$.makedepends')) STORED,
-    PRIMARY KEY (`name`, `db_arch`, `branch`, `repo`)
+    PRIMARY KEY (`name`, `arch`, `branch`, `repo`)
 );
