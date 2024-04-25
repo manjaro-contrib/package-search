@@ -67,7 +67,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         jsonObjectFrom(
           eb
             .selectFrom(`packages as p`)
-            .select(["version"])
+            .select([
+              "p.version",
+              "p.description",
+              ({ fn }) =>
+                fn<string>("strftime", [
+                  sql`'%Y-%m-%dT%H:%M:%fZ'`,
+                  "p.builddate",
+                  sql`'unixepoch'`,
+                ]).as("builddate"),
+            ])
             .whereRef("p.name", "=", "packages.name")
             .where("p.branch", "=", branch)
             .where("p.arch", "=", arch)
@@ -126,11 +135,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   //   "unstable.unstable_builddate",
   // ]);
   // query = query.select(({ fn }) =>
-  //   fn<string>("strftime", [
-  //     sql`'%Y-%m-%dT%H:%M:%fZ'`,
-  //     "builddate",
-  //     sql`'unixepoch'`,
-  //   ]).as("builddate")
+  // fn<string>("strftime", [
+  //   sql`'%Y-%m-%dT%H:%M:%fZ'`,
+  //   "builddate",
+  //   sql`'unixepoch'`,
+  // ]).as("builddate")
   // );
   query = query.limit(100);
   query = query.where((eb) =>
