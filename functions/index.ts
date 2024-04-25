@@ -36,8 +36,7 @@ export const repoValidator = z.enum(["core", "extra", "multilib"]);
 
 const inputValidator = z.object({
   search: z.string().min(3),
-  arch: z.array(archValidator),
-  branch: z.array(branchValidator),
+  arch: archValidator.default("x86_64"),
 });
 
 export const onRequest: PagesFunction<Env> = async (context) => {
@@ -47,14 +46,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const input = inputValidator.safeParse({
     search: params.get("search") ?? undefined,
-    arch: params.getAll("arch") ?? undefined,
-    branch: params.getAll("branch") ?? undefined,
+    arch: params.get("arch") ?? undefined,
   });
 
   if (!input.success) {
     return Response.json(input.error, { status: 400 });
   }
-  const { search, arch, branch } = input.data;
+  const { search, arch } = input.data;
 
   const name = search;
   const nameStart = `${search}%`;
@@ -71,7 +69,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             "stable.name as stable_name",
           ])
           .where("branch", "=", "stable")
-          .where("arch", "=", "x86_64")
+          .where("arch", "=", arch)
           .as("stable"),
       (join) => join.onRef("stable.stable_name", "=", "name")
     )
@@ -84,7 +82,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             "unstable.name as unstable_name",
           ])
           .where("branch", "=", "unstable")
-          .where("arch", "=", "x86_64")
+          .where("arch", "=", arch)
           .as("unstable"),
       (join) => join.onRef("unstable.unstable_name", "=", "name")
     )
@@ -97,7 +95,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             "testing.name as testing_name",
           ])
           .where("branch", "=", "testing")
-          .where("arch", "=", "x86_64")
+          .where("arch", "=", arch)
           .as("testing"),
       (join) => join.onRef("testing.testing_name", "=", "name")
     ).select([
@@ -106,16 +104,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       "stable.stable_version",
       "testing.testing_version"
     ]);
-  query = query.select(({ fn, ref, val }) =>
-    fn<string>("strftime", [
-      sql`'%Y-%m-%dT%H:%M:%fZ'`,
-      "builddate",
-      sql`'unixepoch'`,
-    ]).as("builddate")
-  );
+  // query = query.select(({ fn, ref, val }) =>
+  //   fn<string>("strftime", [
+  //     sql`'%Y-%m-%dT%H:%M:%fZ'`,
+  //     "builddate",
+  //     sql`'unixepoch'`,
+  //   ]).as("builddate")
+  // );
   query = query.limit(100);
-  query = query.where("arch", "in", arch);
-  query = query.where("branch", "in", branch);
   query = query.where((eb) =>
     eb.or([
       eb("name", "=", name),
