@@ -29,7 +29,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     },
   });
   if (!result.ok) {
-    throw new Error(`Failed to fetch ${url}`);
+    return Response.json(
+      {
+        success: false,
+        error: result.statusText,
+      },
+      {
+        status: result.status,
+        headers: {
+          "content-type": "application/json",
+        },
+      }
+    );
   }
   const content = await result.json<
     {
