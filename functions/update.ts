@@ -1,8 +1,5 @@
 import z from "zod";
-
-type Env = {
-  PACKAGES: D1Database;
-};
+import { type Env } from ".";
 
 const archValidator = z.enum(["x86_64", "aarch64"]);
 const branchValidator = z.enum(["stable", "testing", "unstable"]);
