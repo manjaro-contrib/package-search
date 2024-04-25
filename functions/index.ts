@@ -60,11 +60,58 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const nameStart = `${search}%`;
   const nameContains = `%${search}%`;
 
-  let query = db.selectFrom("packages").selectAll();
-  query = query.select(({ fn, ref, val }) =>
-    fn<string>("strftime", [sql`'%Y-%m-%dT%H:%M:%fZ'`, 'builddate', sql`'unixepoch'`]).as(
-      "builddate"
+  let query = db
+    .selectFrom("packages")
+    .innerJoin(
+      (eb) =>
+        eb
+          .selectFrom("packages as stable")
+          .select([
+            "stable.version as stable_version",
+            "stable.name as stable_name",
+          ])
+          .where("branch", "=", "stable")
+          .where("arch", "=", "x86_64")
+          .as("stable"),
+      (join) => join.onRef("stable.stable_name", "=", "name")
     )
+    .innerJoin(
+      (eb) =>
+        eb
+          .selectFrom("packages as unstable")
+          .select([
+            "unstable.version as unstable_version",
+            "unstable.name as unstable_name",
+          ])
+          .where("branch", "=", "unstable")
+          .where("arch", "=", "x86_64")
+          .as("unstable"),
+      (join) => join.onRef("unstable.unstable_name", "=", "name")
+    )
+    .innerJoin(
+      (eb) =>
+        eb
+          .selectFrom("packages as testing")
+          .select([
+            "testing.version as testing_version",
+            "testing.name as testing_name",
+          ])
+          .where("branch", "=", "testing")
+          .where("arch", "=", "x86_64")
+          .as("testing"),
+      (join) => join.onRef("testing.testing_name", "=", "name")
+    ).select([
+      "name",
+      "unstable.unstable_version",
+      "stable.stable_version",
+      "testing.testing_version"
+    ]);
+  query = query.select(({ fn, ref, val }) =>
+    fn<string>("strftime", [
+      sql`'%Y-%m-%dT%H:%M:%fZ'`,
+      "builddate",
+      sql`'unixepoch'`,
+    ]).as("builddate")
   );
   query = query.limit(100);
   query = query.where("arch", "in", arch);
@@ -76,6 +123,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       eb("name", "like", nameContains),
     ])
   );
+  query = query.distinct();
   query = query.orderBy(
     sql`(0 - (name LIKE ${nameStart}) + (name LIKE ${nameContains})) || name`
   );
