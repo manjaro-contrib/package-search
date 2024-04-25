@@ -1,7 +1,33 @@
+import { Kysely, sql } from "kysely";
+import { D1Dialect } from "kysely-d1";
 import z from "zod";
 
 export type Env = {
   PACKAGES: D1Database;
+};
+
+const archs = ["x86_64", "aarch64"] as const;
+const branches = ["stable", "testing", "unstable"] as const;
+const repos = ["core", "extra", "multilib"] as const;
+
+interface Table {
+  arch: (typeof archs)[number];
+  branch: (typeof branches)[number];
+  repo: (typeof repos)[number];
+  name: string;
+  version: string;
+  description: string;
+  builddate: string;
+}
+
+interface Database {
+  packages: Table;
+}
+
+export const getDB = (env: Env) => {
+  return new Kysely<Database>({
+    dialect: new D1Dialect({ database: env.PACKAGES }),
+  });
 };
 
 export const archValidator = z.enum(["x86_64", "aarch64"]);
@@ -10,17 +36,19 @@ export const repoValidator = z.enum(["core", "extra", "multilib"]);
 
 const inputValidator = z.object({
   search: z.string().min(3),
-  arch: archValidator.optional().default("x86_64"),
-  branch: branchValidator.optional().default("stable"),
+  arch: z.array(archValidator),
+  branch: z.array(branchValidator),
 });
 
 export const onRequest: PagesFunction<Env> = async (context) => {
+  const db = getDB(context.env);
+
   const params = new URL(context.request.url).searchParams;
 
   const input = inputValidator.safeParse({
     search: params.get("search") ?? undefined,
-    arch: params.get("arch") ?? undefined,
-    branch: params.get("branch") ?? undefined,
+    arch: params.getAll("arch") ?? undefined,
+    branch: params.getAll("branch") ?? undefined,
   });
 
   if (!input.success) {
@@ -28,33 +56,32 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
   const { search, arch, branch } = input.data;
 
-  const result = await context.env.PACKAGES.prepare(
-    "SELECT *, strftime('%Y-%m-%dT%H:%M:%fZ', builddate, 'unixepoch') AS builddate FROM packages WHERE arch = ? AND branch = ? AND (name LIKE ? OR name LIKE ?) ORDER BY (0 - (name LIKE ?) + (name LIKE ?)) || name  LIMIT 100;"
-  )
-    .bind(
-      arch,
-      branch,
-      `${search}%`,
-      `%${search}%`,
-      `${search}%`,
-      `%${search}%`
+  const name = search;
+  const nameStart = `${search}%`;
+  const nameContains = `%${search}%`;
+
+  let query = db.selectFrom("packages").selectAll();
+  query = query.select(({ fn, ref, val }) =>
+    fn<string>("strftime", [sql`'%Y-%m-%dT%H:%M:%fZ'`, 'builddate', sql`'unixepoch'`]).as(
+      "builddate"
     )
-    .run();
+  );
+  query = query.limit(100);
+  query = query.where("arch", "in", arch);
+  query = query.where("branch", "in", branch);
+  query = query.where((eb) =>
+    eb.or([
+      eb("name", "=", name),
+      eb("name", "like", nameStart),
+      eb("name", "like", nameContains),
+    ])
+  );
+  query = query.orderBy(
+    sql`(0 - (name LIKE ${nameStart}) + (name LIKE ${nameContains})) || name`
+  );
+  console.log(query.compile().parameters, query.compile().sql);
 
-  if (result.error) {
-    return Response.json(
-      {
-        success: false,
-        error: result.error,
-      },
-      {
-        status: 500,
-        headers: {
-          "content-type": "application/json",
-        },
-      }
-    );
-  }
+  const result = await query.execute();
 
-  return Response.json(result["results"]);
+  return Response.json(result);
 };
