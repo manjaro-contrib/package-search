@@ -1,9 +1,6 @@
 import z from "zod";
-import { type Env } from ".";
+import { archValidator, branchValidator, repoValidator, type Env } from ".";
 
-const archValidator = z.enum(["x86_64", "aarch64"]);
-const branchValidator = z.enum(["stable", "testing", "unstable"]);
-const repoValidator = z.enum(["core", "extra", "multilib"]);
 const inputValidator = z.object({
   arch: archValidator,
   branch: branchValidator,

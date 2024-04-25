@@ -8,7 +8,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "db": "echo update the db"
+    "build": "echo nothing to build"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20221111.1",
