@@ -7,7 +7,7 @@ export type Env = {
 };
 
 const archs = ["x86_64", "aarch64"] as const;
-const branches = ["stable", "testing", "unstable"] as const;
+const branches = ["stable", "testing", "unstable", "upstream_stable"] as const;
 const repos = ["core", "extra", "multilib"] as const;
 
 type Table = {
